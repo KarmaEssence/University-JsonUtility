@@ -42,12 +42,28 @@ public class JsonReader {
         Map<String,Object> jsonArray = new HashMap<>();
 
         try{
-
+            String line;
+            while ((line=flux.readLine())!=null){
+                parseLine(jsonArray, line);
+            }
         }catch(Exception e){
             e.printStackTrace();
 
         }
         return jsonArray;
+    }
+
+    public void parseLine(Map<String,Object> map,String line){
+        if(line.contains("{") || line.contains("}")
+        || line.contains("[") || line.contains("]")
+        || line.isEmpty())return;
+        line = line.trim();
+        String[] item = line.split(":");
+        item[0] = item[0].replace("\"","");
+        item[1] = item[1].replace(" ","");
+        item[1] = item[1].replace(",","");
+        map.put(item[0],item[1]);
+
     }
 
     public void close()
