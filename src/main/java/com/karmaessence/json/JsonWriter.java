@@ -3,9 +3,9 @@ package com.karmaessence.json;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class JsonWriter {
 
@@ -24,7 +24,7 @@ public class JsonWriter {
             Resources.createIfFileNotExist(filePath);
         }
         this.filePath = filePath;
-        jsonMap = new HashMap<>();
+        jsonMap = new LinkedHashMap<>();
     }
 
     /**
@@ -54,14 +54,17 @@ public class JsonWriter {
      */
     public void save()
     {
+        Resources.checkIfFileExist(filePath);
         try{
             FileWriter writer = new FileWriter(filePath);
             writer.write("{" + Utility.makeLineBreak(1));
-            for (String key: jsonMap.keySet()){
+            Set<String> keys = jsonMap.keySet();
+            for (String key: keys){
                 if(!Utility.isPrimaryVar(jsonMap.get(key))){
-                    //saveSpecialItem(jsonMap.get(key), writer, key);
+                    //System.out.println(key == keys.toArray()[keys.size()-1]);
+                    saveSpecialObject(jsonMap.get(key), writer, key, key == keys.toArray()[keys.size()-1], 4);
                 }else{
-                    savePrimaryVar(writer,key);
+                    savePrimaryVar(writer,key, 4);
                 }
             }
             writer.write("}");
@@ -80,26 +83,38 @@ public class JsonWriter {
      * @param key Current key.
      * @throws IOException In case where the save failed.
      */
-    private void savePrimaryVar(FileWriter writer,String key) throws IOException {
+    private void savePrimaryVar(FileWriter writer, String key, int space) throws IOException {
         Object obj = jsonMap.get(key);
         if (obj instanceof String || obj instanceof Character){
             obj = "\"" + obj + "\"";
         }
         String comma = (key.equals(lastKey))?"":",";
-        writer.write(Utility.makeSpace(4) + "\""+ key + "\" : " + obj + comma + "\n");
+        writer.write(Utility.makeSpace(space) + "\""+ key + "\": " + obj + comma + "\n");
+    }
+
+    private void savePrimaryVar(Object obj, FileWriter writer,String key, boolean isLastKey, int space) throws IOException {
+        if (obj instanceof String || obj instanceof Character){
+            obj = "\"" + obj + "\"";
+        }
+        String comma = (isLastKey)?"":",";
+        writer.write(Utility.makeSpace(space) + "\""+ key + "\": " + obj + comma + "\n");
     }
 
     //Save content with the annotation "JsonSerialisable"
-    /*private void saveSpecialItem(Object obj,FileWriter writer, String key) throws IllegalAccessException, IOException {
-        Field[] classField = obj.getClass().getDeclaredFields();
-        for(Field field: classField){
-            if (Modifier.isStatic(field.getModifiers()))
-            {
-                field.get(null);
-            }
-            String renamedField = field.getName();
-            writer.write(Utility.makeSpace(4) + "\""+ renamedField + "\" : " + obj. + "\n");
-        }
-    }*/
 
+    private void saveSpecialObject(Object obj, FileWriter writer, String key, boolean isLastKey,int space) throws IOException, IllegalAccessException {
+        Class getClass = obj.getClass();
+        Field[] classField = getClass.getDeclaredFields();
+        writer.write(Utility.makeSpace(space)  + "\""+ key + "\": " + "{" + Utility.makeLineBreak(1));
+        savePrimaryVar(obj.getClass().getName(), writer, "classType", false, space + 4);
+        for(Field field: classField){
+            if(Utility.isPrimaryVar(field.get(obj))){
+                savePrimaryVar(field.get(obj),writer, field.getName(), classField[classField.length-1] == field, space + 4);
+            }else{
+                saveSpecialObject(field.get(obj), writer, field.getName(), classField[classField.length-1] == field,space + 4);
+            }
+        }
+        String comma = (isLastKey)?"":",";
+        writer.write(Utility.makeSpace(space)  +  "}" + comma + Utility.makeLineBreak(1));
+    }
 }

@@ -1,7 +1,11 @@
 package com.karmaessence.json;
 
 import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class JsonReader {
@@ -39,12 +43,18 @@ public class JsonReader {
 
     public Map<String,Object> getContent()
     {
-        Map<String,Object> jsonArray = new HashMap<>();
+        Map<String,Object> jsonArray = new LinkedHashMap<>();
 
         try{
             String line;
             while ((line=flux.readLine())!=null){
-                parseLine(jsonArray, line);
+                if(line.contains(":") && line.contains("{")){
+                    System.out.println(line);
+                    Object[] item = cleanValue(line);
+                    jsonArray.put((String) item[0], makeSubObject((String)cleanValue(flux.readLine())[1]));
+                }else{
+                    parseLine(jsonArray, line);
+                }
             }
         }catch(Exception e){
             e.printStackTrace();
@@ -53,17 +63,62 @@ public class JsonReader {
         return jsonArray;
     }
 
+    private Object makeSubObject(String classType) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException, IOException, NoSuchFieldException {
+        classType = classType.replace("\"", "");
+        Class getClass = Class.forName(classType);
+        Object res = getClass.getConstructor().newInstance();
+        Field[] resFields = res.getClass().getFields();
+        int currentIndex = 0;
+        String line;
+        while (!isEndOfObject((line=flux.readLine()))){
+            System.out.println("Condition 1 :" + (line.contains(":") && line.contains("{")));
+            System.out.println("Name : " + line);
+            if(line.contains(":") && line.contains("{")){
+                Object obj = makeSubObject((String)cleanValue(flux.readLine())[1]);
+                resFields[currentIndex].setAccessible(true);
+                resFields[currentIndex].set(res, obj);
+            }else{
+                Object[] item = cleanValue(line);
+                resFields[currentIndex].setAccessible(true);
+                System.out.println(item[1].getClass());
+                resFields[currentIndex].set(res, item[1]);
+
+            }
+            currentIndex += 1;
+        }
+        return res;
+    }
+
     public void parseLine(Map<String,Object> map,String line){
         if(line.contains("{") || line.contains("}")
         || line.contains("[") || line.contains("]")
         || line.isEmpty())return;
-        line = line.trim();
-        String[] item = line.split(":");
-        item[0] = item[0].replace("\"","");
-        item[1] = item[1].replace(" ","");
-        item[1] = item[1].replace(",","");
-        map.put(item[0],item[1]);
+        Object[] item = cleanValue(line);
+        map.put((String) item[0],item[1]);
 
+    }
+
+    private boolean isEndOfObject(String line){
+        return line.contains("}") || line.contains("]");
+    }
+
+    private Object[] cleanValue(String line){
+        line = line.trim();
+        Object[] item = line.split(":");
+        String key = (String) item[0];
+        key = key.replace("\"","");
+        String firstVal = (String) item[1];
+        firstVal = firstVal.replace(" ","");
+        firstVal = firstVal.replace(",","");
+        firstVal = firstVal.replace("\"","");
+        Object[] res = new Object[2];
+        res[0] = key;
+        if(((String) item[0]).contains("classType") || Utility.firstCharacterIsUpper(((String) item[0]).charAt(0))){
+            res[1] = firstVal;
+        }else{
+            res[1] = Utility.findGoodObject(firstVal);
+        }
+        return res;
     }
 
     public void close()
