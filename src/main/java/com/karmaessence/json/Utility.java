@@ -1,5 +1,8 @@
 package com.karmaessence.json;
 
+import java.util.List;
+import java.util.Map;
+
 public class Utility {
 
     /**
@@ -38,7 +41,6 @@ public class Utility {
     //Modify isDigit for short, long value, etc ...
     protected static Object findGoodObject(String firstVal){
         if(firstVal.length() == 1 && isCharacter(firstVal.charAt(0))){
-
             return firstVal.charAt(0);
         }else if(isDigit(firstVal)){
             return Integer.valueOf(firstVal);
@@ -49,11 +51,11 @@ public class Utility {
         }
     }
 
-    private static boolean isCharacter(int c){
+    public static boolean isCharacter(int c){
         return (c >= 58 && c <= 126) || (c >= 33 && c <= 47);
     }
 
-    private static boolean isDigit(String s){
+    public static boolean isDigit(String s){
         for(int i = 0; i < s.length(); i++){
             if (!(s.charAt(i) >= 48 && s.charAt(i) <= 57)){
                 return false;

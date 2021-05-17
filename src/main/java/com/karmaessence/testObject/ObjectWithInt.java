@@ -1,7 +1,13 @@
 package com.karmaessence.testObject;
 
+import com.karmaessence.json.annotation.JsonSerializable;
+
 public class ObjectWithInt {
+
+    @JsonSerializable
     public Integer test;
+
+    @JsonSerializable
     public Integer test1;
 
     public ObjectWithInt(int first, int second){
@@ -10,7 +16,7 @@ public class ObjectWithInt {
     }
 
     public ObjectWithInt(){
-        this(10,20);
+        this(10,5);
     }
 
    public void toPrint(){
